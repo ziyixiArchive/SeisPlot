@@ -8,8 +8,14 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
+    "@nasaworldwind/worldwind": "^0.9.0",
+    "@statnett/vue-plotly": "^0.2.0",
+    "ajv": "^5.5.2",
+    "axios": "^0.18.0",
     "iview": "^3.0.1",
+    "mathjs": "^5.4.0",
     "vue": "^2.5.17",
+    "vue-axios": "^2.1.4",
     "vue-router": "^3.0.1",
     "vuex": "^3.0.1"
   },
