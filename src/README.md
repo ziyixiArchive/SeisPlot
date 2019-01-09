@@ -1,0 +1,3 @@
+# SeisPlot
+
+### Author: Ziyi Xi
