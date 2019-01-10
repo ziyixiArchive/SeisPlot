@@ -1,1 +1,2 @@
 from .waveform_single import get_waveform_single, post_waveform_single
+from .waveform_multiple import post_waveform_multiple

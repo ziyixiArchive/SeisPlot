@@ -1,7 +1,7 @@
 from flask_restful import Resource, request
 from .login import set_default, get_default
 from .catalog import get_catalog, get_catalog_event
-from .waveform import get_waveform_single, post_waveform_single
+from .waveform import get_waveform_single, post_waveform_single, post_waveform_multiple
 
 
 class Login(Resource):
@@ -33,3 +33,9 @@ class Waveform_single(Resource):
     def post(self, eventid, stationid):
         data = request.get_json(force=True)
         return post_waveform_single(eventid, stationid, data)
+
+
+class Waveform_multiple(Resource):
+    def post(self, id):
+        setting = request.get_json(force=True)
+        return post_waveform_multiple(id, setting)
