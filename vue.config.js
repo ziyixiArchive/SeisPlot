@@ -5,13 +5,13 @@ module.exports = {
   runtimeCompiler: undefined,
   productionSourceMap: undefined,
   parallel: undefined,
-  css: undefined,
-  devServer: {
-    proxy: {
-      "/api*": {
-        // Forward frontend dev server request for /api to flask dev server
-        target: "http://localhost:5000/"
-      }
-    }
-  }
+  css: undefined
+  // devServer: {
+  //   proxy: {
+  //     "/api*": {
+  //       // Forward frontend dev server request for /api to flask dev server
+  //       target: "http://localhost:5000/"
+  //     }
+  //   }
+  // }
 };

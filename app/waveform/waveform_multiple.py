@@ -1,11 +1,13 @@
 import glob
-import json
+import ujson
 import os
 from datetime import timedelta
 
 import obspy
 from configobj import ConfigObj
 from obspy.taup import TauPyModel
+from obspy.geodetics import degrees2kilometers
+import numpy as np
 
 
 def post_waveform_multiple(id, setting):
@@ -28,6 +30,10 @@ def post_waveform_multiple(id, setting):
     filt_data(r, filter_range)
     filt_data(t, filter_range)
 
+    z.normalize()
+    r.normalize()
+    t.normalize()
+
     result = {
         "stats": {
             "z": [],
@@ -38,36 +44,92 @@ def post_waveform_multiple(id, setting):
             "z": [],
             "r": [],
             "t": []
+        },
+        "yaxis": {
+            "z": [],
+            "r": [],
+            "t": []
+        },
+        "networks": {
+            "z": [],
+            "r": [],
+            "t": []
+        },
+        "stations": {
+            "z": [],
+            "r": [],
+            "t": []
         }
     }
     new_start_times, end_times = get_new_times(z, r, t, setting)
 
     for i, wave in enumerate(z):
         newwave = wave.slice(new_start_times["z"][i], end_times["z"][i])
-        result["waves"]["z"].append(newwave.data.tolist())
+        result["waves"]["z"].append((newwave.data))
         result["stats"]["z"].append({
             "delta": newwave.stats.delta,
             "npts": newwave.stats.npts,
             "o": float(newwave.stats.sac.o)
         })
+        result["yaxis"]["z"].append(get_y_axis(newwave, setting))
+        result["networks"]["z"].append(newwave.stats.network)
+        result["stations"]["z"].append(newwave.stats.station)
     for i, wave in enumerate(r):
         newwave = wave.slice(new_start_times["r"][i], end_times["r"][i])
-        result["waves"]["r"].append(newwave.data.tolist())
+        result["waves"]["r"].append((newwave.data))
         result["stats"]["r"].append({
             "delta": newwave.stats.delta,
             "npts": newwave.stats.npts,
             "o": float(newwave.stats.sac.o)
         })
+        result["yaxis"]["r"].append(get_y_axis(newwave, setting))
+        result["networks"]["r"].append(newwave.stats.network)
+        result["stations"]["r"].append(newwave.stats.station)
     for i, wave in enumerate(t):
         newwave = wave.slice(new_start_times["t"][i], end_times["t"][i])
-        result["waves"]["t"].append(newwave.data.tolist())
+        result["waves"]["t"].append((newwave.data))
         result["stats"]["t"].append({
             "delta": newwave.stats.delta,
             "npts": newwave.stats.npts,
             "o": float(newwave.stats.sac.o)
         })
+        result["yaxis"]["t"].append(get_y_axis(newwave, setting))
+        result["networks"]["t"].append(newwave.stats.network)
+        result["stations"]["t"].append(newwave.stats.station)
 
-    return json.dumps(result)
+    # update scale
+    z_scale = np.mean(np.diff(np.sort(np.array(result["yaxis"]["z"]))))/2.0
+    print(z_scale)
+    for i, wave in enumerate(z):
+        result["waves"]["z"][i] = (
+            result["waves"]["z"][i]*z_scale).tolist()
+    r_scale = np.mean(np.diff(np.sort(np.array(result["yaxis"]["r"]))))/2.0
+    for i, wave in enumerate(r):
+        result["waves"]["r"][i] = (
+            result["waves"]["r"][i]*r_scale).tolist()
+    t_scale = np.mean(np.diff(np.sort(np.array(result["yaxis"]["t"]))))/2.0
+    for i, wave in enumerate(t):
+        result["waves"]["t"][i] = (
+            result["waves"]["t"][i]*t_scale).tolist()
+
+    if(setting["channal"] == "z"):
+        return ujson.dumps({
+            "stats": {
+                "z": result["stats"]["z"]
+            },
+            "waves": {
+                "z": result["waves"]["z"]
+            },
+            "yaxis": {
+                "z": result["yaxis"]["z"]
+            },
+            "networks": {
+                "z": result["networks"]["z"]
+            },
+            "stations": {
+                "z": result["stations"]["z"]
+            }
+        })
 
 
 def filt_data(waves, filter_range):
@@ -174,3 +236,15 @@ def cal_s_arrival(wave, setting):
     else:
         # return s_obj[0].time
         return wave.stats.starttime+timedelta(seconds=(float(wave.stats.sac.o)+s_obj[0].time))
+
+
+def get_y_axis(wave, setting):
+    yaxis = setting["axis"]
+    if(yaxis == "epicenter_distance"):
+        return float(wave.stats.sac.gcarc)
+    elif(yaxis == "euclidean_distance"):
+        gcarc_km = degrees2kilometers(float(wave.stats.sac.gcarc))
+        depth_km = float(wave.stats.sac.evdp)
+        return np.sqrt(gcarc_km**2+depth_km**2)
+    elif(yaxis == "depth"):
+        return float(wave.stats.sac.evdp)

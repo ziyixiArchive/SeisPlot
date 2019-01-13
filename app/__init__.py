@@ -2,8 +2,10 @@ import os
 from flask import Flask
 from flask_restful import Api, Resource, request
 from .api import Login, Login_get_default, Catalog, Catalog_event, Waveform_single, Waveform_multiple
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 api = Api(app)
 
 api.add_resource(Login, '/api/login')

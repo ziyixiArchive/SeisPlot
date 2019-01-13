@@ -98,12 +98,27 @@
       </template>
       <template v-else>
         <Card class="waveformplot-card">
-          <vue-plotly
+          <!-- <vue-plotly
             :data="waveform.plot.data"
             :layout="waveform.plot.layout"
             :options="waveform.plot.options"
             style="margin:auto;height:720px;width:1200px"
-          />
+          />-->
+          <div id="plotly"/>
+        </Card>
+        <Card class="waveformplot-card">
+          <Form ref="setting in display" :model="waveform.display" inline label-position="left">
+            <FormItem label="scale">
+              <Input
+                v-model="waveform.display.scale"
+                placeholder="Enter some the scale value"
+                style="width: 300px"
+              />
+            </FormItem>
+            <FormItem>
+              <Button size="small" @click="handle_display_config">Submit</Button>
+            </FormItem>
+          </Form>
         </Card>
       </template>
     </Drawer>
@@ -113,6 +128,7 @@
 <script>
 import plot_utils from "./index_plot_utils.js";
 import VuePlotly from "@statnett/vue-plotly";
+import * as Plotly from "plotly.js/dist/plotly";
 
 export default {
   components: {
@@ -143,7 +159,11 @@ export default {
           data: [],
           layout: {},
           options: {}
-        }
+        },
+        display: {
+          scale: 1
+        },
+        plot_data: {}
       }
     };
   },
@@ -207,16 +227,6 @@ export default {
       /**change to waveform page */
       this.waveform.show_setting = false;
     },
-    /**plot */
-    draw_waveform_based_on_data: function(data) {
-      var x = new Array(10000);
-      var y = new Array(10000);
-      for (var i = 0; i < 10000; i++) {
-        x[i] = i;
-        y[i] = i;
-      }
-      this.waveform.plot.data = [{ x: x, y: y }];
-    },
     /**get multible waveforms */
     post_setting_to_get_waveform_and_plot: function() {
       return this.$http
@@ -228,11 +238,79 @@ export default {
         )
         .then(result => {
           var data = JSON.parse(result.data);
+          this.waveform.plot_data = data;
+          console.log(data);
           this.draw_waveform_based_on_data(data);
         })
         .catch(err => {
           console.log(err);
         });
+    },
+    /**plot */
+    draw_waveform_based_on_data: function(data) {
+      var plotdata = [];
+      for (var j = 0; j < data.waves.z.length; j++) {
+        var stats = data.stats.z[j];
+        var X = Array.from(
+            new Array(stats.npts),
+            (val, index) => index * stats.delta
+          ),
+          Y = data.waves.z[j].map(x => x + data.yaxis.z[j]);
+        plotdata.push({
+          type: "scattergl",
+          mode: "line",
+          hoverinfo: "none",
+          line: {
+            color: "black",
+            shape: "linear"
+          },
+          x: X,
+          y: Y
+        });
+      }
+      var layout = {
+        showlegend: false,
+        width: 1200,
+        height: 650,
+        autosize: false
+      };
+      console.log("toplot");
+      console.log(plotdata);
+      Plotly.newPlot("plotly", plotdata, layout, { showSendToCloud: true });
+    },
+    /**handle display config */
+    handle_display_config: function() {
+      var plotdata = [];
+      var data = this.waveform.plot_data;
+      var scale = parseFloat(this.waveform.display.scale);
+      for (var j = 0; j < data.waves.z.length; j++) {
+        var stats = data.stats.z[j];
+        var X = Array.from(
+            new Array(stats.npts),
+            (val, index) => index * stats.delta
+          ),
+          Y = data.waves.z[j].map(x => x * scale + data.yaxis.z[j]);
+        plotdata.push({
+          type: "scattergl",
+          mode: "line",
+          hoverinfo: "none",
+          line: {
+            color: "black",
+            shape: "linear"
+          },
+          x: X,
+          y: Y
+        });
+      }
+      var layout = {
+        showlegend: false,
+        width: 1200,
+        height: 650,
+        autosize: false
+      };
+      console.log("update plot");
+      console.log(scale);
+      Plotly.react("plotly", plotdata, layout, { showSendToCloud: true });
     }
   }
 };
@@ -254,7 +332,7 @@ export default {
 
 .waveformplot-card {
   width: 1300px;
-  margin-top: 50px;
+  margin-top: 20px;
   margin-left: auto;
   margin-right: auto;
 }
