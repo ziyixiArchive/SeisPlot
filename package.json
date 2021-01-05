@@ -11,7 +11,7 @@
     "@nasaworldwind/worldwind": "^0.9.0",
     "@statnett/vue-plotly": "^0.2.0",
     "ajv": "^5.5.2",
-    "axios": "^0.18.0",
+    "axios": "^0.21.1",
     "iview": "^3.0.1",
     "mathjs": "^5.4.0",
     "plotly.js": "^1.43.2",
